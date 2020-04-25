@@ -6,7 +6,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using banka_net_core.Data;
 using AutoMapper;
-
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System;
+using banka_net_core.Services.Accounts;
+using banka_net_core.Data.Repositories.Auth;
 
 namespace banka_net_core
 {
@@ -24,6 +29,22 @@ namespace banka_net_core
         {
             services.AddControllers();
             services.AddAutoMapper(typeof(Startup));
+            services.AddScoped<IAuthRepository, AuthRepository>();
+            services.AddScoped<IAccountSerevices, AccountServices>();
+
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    // Console.Write(Configuration.GetSection("AppSettings:Token").Value)
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII
+                    .GetBytes(Configuration.GetSection("AppSettings:Token").Value)),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
+                };
+            });
 
             services.AddDbContext<DataContext>(x => x.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
@@ -37,9 +58,11 @@ namespace banka_net_core
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseHttpsRedirection();
+            // app.UseHttpsRedirection();
 
             app.UseRouting();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
