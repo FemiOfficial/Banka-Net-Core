@@ -33,5 +33,18 @@ namespace banka_net_core.Controllers
 
             return Ok(response);
         }
+
+        [HttpPost("Signin")]
+        public async Task<IActionResult> Login(UserLoginDto user) 
+        {
+            ServiceResponse<UserAuthDto> response = await _authrepo.Login(user.Email, user.Password);
+
+            if(response.Status != ServiceResponseCodes.Created) 
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
     }
 };

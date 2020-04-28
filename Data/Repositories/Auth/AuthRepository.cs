@@ -69,10 +69,35 @@ namespace banka_net_core.Data.Repositories.Auth
             
         }
 
-        // public async Task<ServiceResponse<UserAuthDto>> Login(string email, string password) {
+        public async Task<ServiceResponse<UserAuthDto>> Login(string email, string password) {
 
-        //     throw new NotImplementedException();
-        // }
+            ServiceResponse<UserAuthDto> response = new ServiceResponse<UserAuthDto>();
+            User user = await _context.Users.FirstOrDefaultAsync(i => i.Email.ToLower().Equals(email));
+
+            if(user == null) 
+            {
+                response.Status = ServiceResponseCodes.NotFound;
+                response.Message = "Invalid Email Address";
+                response.Data = null;
+            } else if (VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt) == false) {
+                response.Status = ServiceResponseCodes.BadRequest;
+                response.Message = "Invalid Password";
+                response.Data = null;
+            } else {
+                response.Status = ServiceResponseCodes.Success;
+                response.Message = "user successfully logged in";
+                response.Data = new UserAuthDto 
+                {
+                    Email = user.Email,
+                    Firstname = user.Firstname,
+                    Lastname = user.Lastname,
+                    Token = GenerateToken(user)
+                };
+            }
+
+            return response;
+
+        }
 
         public async Task<bool> UserExists(string email)
         {
@@ -91,6 +116,24 @@ namespace banka_net_core.Data.Repositories.Auth
                 passwordSalt = hmac.Key;
                 passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
 
+            }
+        }
+
+
+        private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt)
+        {
+            using (var hmac = new System.Security.Cryptography.HMACSHA512(passwordSalt))
+            {
+                var computedHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                for (int i = 0; i < computedHash.Length; i++)
+                {
+                    if (computedHash[i] != passwordHash[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
             }
         }
 
