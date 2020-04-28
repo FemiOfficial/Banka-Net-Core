@@ -39,8 +39,15 @@ namespace banka_net_core.Data.Repositories.Auth
 
                 User user = _mapper.Map<User>(newuser);
 
+                if(await UserExists(user.Email) == true) 
+                {
+                    return null;
+                }
+
                 user.createdAt = DateTime.Now;
                 user.updatedAt = DateTime.Now;
+                user.PasswordHash = passwordHash;
+                user.PasswordSalt = passwordSalt;
 
                 await _context.Users.AddAsync(user);
 
